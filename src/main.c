@@ -6,175 +6,146 @@
 /*   By: hzakharc < hzakharc@student.42wolfsburg    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/08/17 16:26:34 by hzakharc          #+#    #+#             */
-/*   Updated: 2024/08/19 17:28:26 by hzakharc         ###   ########.fr       */
+/*   Updated: 2024/08/20 17:26:03 by hzakharc         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "pipex.h"
 
-int	ft_lst_size(t_list *lst)
+void	check_args(t_pipex *data)
 {
-	int		i;
-	t_list	*temp;
+	if (access(data->cmd1[0], X_OK) == -1)
+		error_data(data, "INCORRECT COMMAND\n");
+	if (access(data->cmd2[0], X_OK) == -1)
+		error_data(data, "INCORRECT COMMAND\n");
+	if (access(data->file1, R_OK) == -1)
+		error_data(data, "INFILE IS NOT FOUND\n");
+	data->fd[0] = open(data->file1, O_RDONLY);
+	data->fd[1] = open(data->file2, O_WRONLY | O_TRUNC | O_CREAT, 0644);
+}
 
-	i = 0;
-	temp = lst;
-	while (temp)
+void	execute_util(t_pipex *data, char **envp, int pipefd[])
+{
+	pid_t	pid;
+
+	pid = fork();
+	if (pid == -1)
+		error_data(data, "FORK ERROR\n");
+	if (pid == 0)
 	{
-		temp = temp->next;
-		i++;
+		close(pipefd[1]);
+		dup2(pipefd[0], STDIN_FILENO);
+		close(pipefd[0]);
+		dup2(data->fd[1], STDOUT_FILENO);
+		execve(data->cmd2[0], data->cmd2, envp);
+		error_data(data, "EXECUTION FAILURE\n");
 	}
-	return (i);
+	waitpid(pid, 0, 0);
 }
 
-void	ft_lst_add_back(t_list **lst, t_list *new_node)
+void	pipex(t_pipex *data, char **envp)
 {
-	t_list	*tmp;
+	int		pipefd[2];
+	pid_t	pid;
 
-	if (!new_node)
-		return ;
-	if (*lst == NULL)
-		*lst = new_node;
-	else
+	if (pipe(pipefd) == -1)
+		error_data(data, "PIPE ERROR\n");
+	pid = fork();
+	if (pid == -1)
+		error_data(data, "FORK ERORR\n");
+	if (pid == 0)
 	{
-		tmp = *lst;
-		while (tmp->next != NULL)
-			tmp = tmp->next;
-		tmp->next = new_node;
+		close(pipefd[0]);
+		dup2(pipefd[1], STDOUT_FILENO);
+		close(pipefd[1]);
+		dup2(data->fd[0], STDIN_FILENO);
+		execve(data->cmd1[0], data->cmd1, envp);
+		error_data(data, "EXECUTION FAILURE\n");
 	}
+	waitpid(pid, 0, 0);
+	execute_util(data, envp, pipefd);
+	waitpid(pid, 0, 0);
+	close(pipefd[0]);
+	close(pipefd[1]);
 }
 
-t_list	*ft_list_new(char **value)
+void print_data(t_pipex *data)
 {
-	t_list	*head;
+    int i;
 
-	head = malloc(sizeof(t_list));
-	if (!head)
-		return (NULL);
-	head->value = value;
-	head->next = NULL;
-	return (head);
+    printf("File 1: %s\n", data->file1);
+    printf("File 2: %s\n", data->file2);
+
+    printf("Command 1:\n");
+    i = 0;
+    while (data->cmd1[i])
+    {
+        printf("  cmd1[%d]: %s\n", i, data->cmd1[i]);
+        i++;
+    }
+
+    printf("Command 2:\n");
+    i = 0;
+    while (data->cmd2[i])
+    {
+        printf("  cmd2[%d]: %s\n", i, data->cmd2[i]);
+        i++;
+    }
 }
 
-void	take_data_util(t_pipex *data, char **av, int ac)
+void	take_data(char **av, t_pipex *data)
 {
 	data->file1 = ft_strdup(av[1]);
 	if (!data->file1)
 		error_data(data, "ALLOCATION ERROR\n");
-	data->file2 = ft_strdup(av[ac - 1]);
+	data->file2 = ft_strdup(av[4]);
 	if (!data->file2)
 		error_data(data, "ALLOCATION ERROR\n");
+	take_data_util(av, data);
 }
 
-void	take_data_util2(char **av, t_pipex *data)
+void	take_data_util(char **av, t_pipex *data)
 {
-	t_list	*temp;
-	int		i;
-	char	*tempstr;
-
-	temp = data->cmd;
-	i = 2;
-	while (temp != NULL)
-	{
-		temp->value = ft_split(av[i], ' ');
-		if (!temp->value)
-			error_data(data, "ALLOCATION FAILED\n");
-		tempstr = ft_strdup(temp->value[0]);
-		free(temp->value[0]);
-		temp->value[0] = ft_strjoin("/bin/", tempstr);
-		free(tempstr);
-		temp = temp->next;
-		i++;
-	}
-}
-
-void	take_data(t_pipex *data, char **av, int ac)
-{
-	t_list	*temp;
-	t_list	*temp2;
-	int		i;
-
-	take_data_util(data, av, ac);
-	data->cmd = ft_list_new(NULL);
-	temp = data->cmd;
-	i = 2;
-	while (i < ac - 2)
-	{
-		temp2 = ft_list_new(NULL);
-		ft_lst_add_back(&temp, temp2);
-		temp = temp->next;
-		i++;
-	}
-	take_data_util2(av, data);
-}
-
-void	exec_cmd(int fd[], t_list *cmd, t_pipex *data, char **envp)
-{
-	int	pid;
-	int	pipefd[2];
+	char	*temp;
 	
-	pid = fork();
-	pipe(pipefd);
-	if (pid == 0)
-	{
-		close(pipefd[0]);
-		dup2(fd[0], STDIN_FILENO);
-		dup2(pipefd[1], STDOUT_FILENO);
-		close(pipefd[0]);
-		execve(cmd->value[0], cmd->value, envp);
-		error_data(data, "Error: Unknown command\n");
-		exit(1);
-	}
-	waitpid(pid, NULL, 0);
+	data->cmd1 = ft_split(av[2], ' ');
+	if (!data->cmd1)
+		error_data(data, "ALLOCATION ERROR\n");
+	temp = ft_strdup(data->cmd1[0]);
+	free(data->cmd1[0]);
+	data->cmd1[0] = ft_strjoin("/bin/", temp);
+	free(temp);
+	data->cmd2 = ft_split(av[3], ' ');
+	if (!data->cmd2)
+		error_data(data, "ALLOCATION ERROR\n");
+	temp = ft_strdup(data->cmd2[0]);
+	free(data->cmd2[0]);
+	data->cmd2[0] = ft_strjoin("/bin/", temp);
+	free(temp);
 }
 
-void	pipex(char **envp, t_pipex *data)
-{
-	t_list	*tmp;
-	int	fd[2];
-
-	tmp = data->cmd;
-	fd[0] = open(data->file1, O_RDONLY);
-	if (fd[0] < 0)
-		error_data(data, "COULDN'T OPEN INFILE\n");
-	fd[1] = open(data->file2, O_WRONLY | O_TRUNC | O_CREAT, 0644);
-	if (fd[1] < 0)
-		error_data(data, "COULDN'T OPEN OUTFILe\n");
-	while (tmp)
-	{
-		exec_cmd(fd, tmp, data, envp);
-		tmp = tmp->next;
-	}
-	free_data(data);
-}
-
-void	print_list(t_list *lst)
-{
-	for (t_list *temp = lst; temp; temp = temp->next)
-		for(int i = 0; temp->value[i]; i++)
-			printf("%s\n", temp->value[i]);
-}
-int	main(int ac, char **av, char **envp)
+int main(int ac, char **av, char **envp)
 {
 	t_pipex	*data;
 	(void)envp;
 
-	if (ac < 5)
+	if (ac != 5)
 	{
-		error_message("INCORRECT AMOUNT OF ARGUMENTS\n");
-		return (1);
+		error_message("INCORRECT NUMBER OF ARGUMENTS\n");
+		exit(1);
 	}
 	data = malloc(sizeof(t_pipex));
 	if (!data)
 	{
 		error_message("ALLOCATION ERROR\n");
-		return (1);
+		exit(1);
 	}
-	take_data(data, av, ac);
-	// print_list(data->cmd);
-	// printf("%s\n", data->file1);
-	// printf("%s\n", data->file2);
-	pipex(envp, data);
+	take_data(av, data);
+	check_args(data);
+	pipex(data, envp);
+	close(data->fd[0]);
+	close(data->fd[1]);
+	free_data(data);
+
 	return (0);
 }
-

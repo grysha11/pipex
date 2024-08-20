@@ -6,24 +6,11 @@
 /*   By: hzakharc < hzakharc@student.42wolfsburg    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/08/18 16:34:11 by hzakharc          #+#    #+#             */
-/*   Updated: 2024/08/19 16:27:42 by hzakharc         ###   ########.fr       */
+/*   Updated: 2024/08/20 16:00:04 by hzakharc         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "pipex.h"
-
-void	ft_lst_clear(t_list **lst)
-{
-	t_list	*head;
-
-	while (*lst)
-	{
-		head = (*lst)->next;
-		ft_free_matrix((*lst)->value);
-		free(*lst);
-		(*lst) = head;
-	}
-}
 
 void	ft_free_matrix(char **matrix)
 {
@@ -45,8 +32,10 @@ void	free_data(t_pipex *data)
 {
 	if (data)
 	{
-		if (data->cmd)
-			ft_lst_clear(&data->cmd);
+		if (data->cmd1)
+			ft_free_matrix(data->cmd1);
+		if (data->cmd2)
+			ft_free_matrix(data->cmd2);
 		if (data->file1)
 			free(data->file1);
 		if (data->file2)

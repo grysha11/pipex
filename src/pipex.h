@@ -6,7 +6,7 @@
 /*   By: hzakharc < hzakharc@student.42wolfsburg    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/08/18 11:01:16 by hzakharc          #+#    #+#             */
-/*   Updated: 2024/08/19 16:27:33 by hzakharc         ###   ########.fr       */
+/*   Updated: 2024/08/20 17:07:56 by hzakharc         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -29,23 +29,20 @@
 # define COLOR_PURPLE "\033[1;35m"
 # define COLOR_CYAN "\033[1;36m"
 
-typedef struct s_list
-{
-	char			**value;
-	struct s_list	*next;
-}				t_list;
-
 typedef struct s_pipex
 {
 	char	*file1;
 	char	*file2;
-	t_list	*cmd;
+	char	**cmd1;
+	char	**cmd2;
+	int		fd[2];
 }				t_pipex;
 
 void	error_message(char *str);
 void	free_data(t_pipex *data);
 void	error_data(t_pipex *data, char *str);
-void	ft_lst_clear(t_list **lst);
-void	ft_free_matrix(char **matrix);
+
+void	take_data(char **av, t_pipex *data);
+void	take_data_util(char **av, t_pipex *data);
 
 #endif
