@@ -6,23 +6,11 @@
 /*   By: hzakharc < hzakharc@student.42wolfsburg    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/08/17 16:26:34 by hzakharc          #+#    #+#             */
-/*   Updated: 2024/08/20 17:26:03 by hzakharc         ###   ########.fr       */
+/*   Updated: 2024/08/21 14:08:08 by hzakharc         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "pipex.h"
-
-void	check_args(t_pipex *data)
-{
-	if (access(data->cmd1[0], X_OK) == -1)
-		error_data(data, "INCORRECT COMMAND\n");
-	if (access(data->cmd2[0], X_OK) == -1)
-		error_data(data, "INCORRECT COMMAND\n");
-	if (access(data->file1, R_OK) == -1)
-		error_data(data, "INFILE IS NOT FOUND\n");
-	data->fd[0] = open(data->file1, O_RDONLY);
-	data->fd[1] = open(data->file2, O_WRONLY | O_TRUNC | O_CREAT, 0644);
-}
 
 void	execute_util(t_pipex *data, char **envp, int pipefd[])
 {
@@ -37,8 +25,9 @@ void	execute_util(t_pipex *data, char **envp, int pipefd[])
 		dup2(pipefd[0], STDIN_FILENO);
 		close(pipefd[0]);
 		dup2(data->fd[1], STDOUT_FILENO);
-		execve(data->cmd2[0], data->cmd2, envp);
-		error_data(data, "EXECUTION FAILURE\n");
+		close(data->fd[1]);
+		if (execve(data->cmd2[0], data->cmd2, envp) == -1)
+			error_data(data, "EXECUTION FAILURE\n");
 	}
 	waitpid(pid, 0, 0);
 }
@@ -59,38 +48,13 @@ void	pipex(t_pipex *data, char **envp)
 		dup2(pipefd[1], STDOUT_FILENO);
 		close(pipefd[1]);
 		dup2(data->fd[0], STDIN_FILENO);
-		execve(data->cmd1[0], data->cmd1, envp);
-		error_data(data, "EXECUTION FAILURE\n");
+		if (execve(data->cmd1[0], data->cmd1, envp) == -1)
+			error_data(data, "EXECUTION FAILURE\n");
 	}
-	waitpid(pid, 0, 0);
+	close(pipefd[1]);
 	execute_util(data, envp, pipefd);
 	waitpid(pid, 0, 0);
-	close(pipefd[0]);
-	close(pipefd[1]);
-}
-
-void print_data(t_pipex *data)
-{
-    int i;
-
-    printf("File 1: %s\n", data->file1);
-    printf("File 2: %s\n", data->file2);
-
-    printf("Command 1:\n");
-    i = 0;
-    while (data->cmd1[i])
-    {
-        printf("  cmd1[%d]: %s\n", i, data->cmd1[i]);
-        i++;
-    }
-
-    printf("Command 2:\n");
-    i = 0;
-    while (data->cmd2[i])
-    {
-        printf("  cmd2[%d]: %s\n", i, data->cmd2[i]);
-        i++;
-    }
+	check_fds(pipefd, data);
 }
 
 void	take_data(char **av, t_pipex *data)
@@ -107,7 +71,7 @@ void	take_data(char **av, t_pipex *data)
 void	take_data_util(char **av, t_pipex *data)
 {
 	char	*temp;
-	
+
 	data->cmd1 = ft_split(av[2], ' ');
 	if (!data->cmd1)
 		error_data(data, "ALLOCATION ERROR\n");
@@ -124,10 +88,9 @@ void	take_data_util(char **av, t_pipex *data)
 	free(temp);
 }
 
-int main(int ac, char **av, char **envp)
+int	main(int ac, char **av, char **envp)
 {
 	t_pipex	*data;
-	(void)envp;
 
 	if (ac != 5)
 	{
@@ -143,9 +106,6 @@ int main(int ac, char **av, char **envp)
 	take_data(av, data);
 	check_args(data);
 	pipex(data, envp);
-	close(data->fd[0]);
-	close(data->fd[1]);
 	free_data(data);
-
 	return (0);
 }

@@ -6,12 +6,12 @@
 #    By: hzakharc < hzakharc@student.42wolfsburg    +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2024/08/07 13:58:02 by hzakharc          #+#    #+#              #
-#    Updated: 2024/08/18 16:50:00 by hzakharc         ###   ########.fr        #
+#    Updated: 2024/08/21 13:59:29 by hzakharc         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
 SRCSDIR		=	src
-SRCS		=	$(SRCSDIR)/main.c $(SRCSDIR)/error.c
+SRCS		=	$(SRCSDIR)/main.c $(SRCSDIR)/error.c $(SRCSDIR)/util.c
 
 LIBFTDIR	=	include/libft
 PRINTFDIR	=	include/ft_printf
@@ -22,7 +22,7 @@ OBJS		=	$(SRCS:.c=.o)
 
 CC			=	@cc
 RM			=	@rm -f
-CCFLAGS		=	-Wall -Werror -Wextra -Iinclude/mlx
+CCFLAGS		=	-Wall -Werror -Wextra
 
 BLUE		=	\033[0;94m
 RED			=	\033[0;91m
@@ -53,9 +53,6 @@ S_OBJS		=	@echo "$(BLUE)cleaning of objects completed <(￣︶￣)>$(COLOR)"
 S_NAME		=	@echo "$(CYAN)full clean completed ! ヽ(・∀・)ﾉ$(COLOR)"
 
 NAME		=	pipex
-
-%.o:		%.c
-			$(CC) $(CCFLAGS) -c $< -o $@
 
 all:		$(NAME)
 

@@ -6,7 +6,7 @@
 /*   By: hzakharc < hzakharc@student.42wolfsburg    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/08/18 11:01:16 by hzakharc          #+#    #+#             */
-/*   Updated: 2024/08/20 17:07:56 by hzakharc         ###   ########.fr       */
+/*   Updated: 2024/08/21 14:10:13 by hzakharc         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -44,5 +44,7 @@ void	error_data(t_pipex *data, char *str);
 
 void	take_data(char **av, t_pipex *data);
 void	take_data_util(char **av, t_pipex *data);
+void	check_args(t_pipex *data);
+void	check_fds(int pipefd[], t_pipex *data);
 
 #endif
